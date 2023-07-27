@@ -1,22 +1,21 @@
-import { cambiarNombreEnlaces } from "../helpers/enlaces.js";
-import { hashearPasword } from "../helpers/hashPasswords.js";
+import { compararPassword, hashearPasword } from "../helpers/hashPasswords.js";
 import Enlace from "../models/Enlace.js"
 import shortid from "shortid";
 
 const generarNuevoEnlace = async (req, res) => {
 
-  const { nombre_original } = req.body;
+  const { nombre_original, nombreArchivoNodesend } = req.body;
 
   const idDocument = shortid.generate()
 
   const newEnlace = new Enlace()
   newEnlace.url = idDocument;
-  newEnlace.nombre = `${cambiarNombreEnlaces(nombre_original)}-${idDocument}`;
+  newEnlace.nombre = nombreArchivoNodesend;
   newEnlace.nombre_original = nombre_original;
 
   if(req.usuario){
     const { password = null, descargas = 1 } = req.body
-    newEnlace.password = await hashearPasword(password);
+    newEnlace.password = password ? await hashearPasword(password) : password;
     newEnlace.descargas = descargas
     newEnlace.autor = req.usuario.id
   }
@@ -30,29 +29,45 @@ const generarNuevoEnlace = async (req, res) => {
   }
 };
 
-const obtenerEnlace = async (req, res, next) => {
+const obtenerEnlace = async (req, res) => {
   const { url } = req.params
   const enlaceEncontrado = await Enlace.findOne({ url })
   if(!enlaceEncontrado){
     return res.status(404).json({ msg: 'El archivo ya no existe.' })
-  } 
-  res.json({ archivo: enlaceEncontrado.nombre })
-
-  //Validar y acciones en cuanto a # de descargas
-  if(enlaceEncontrado.descargas === 1){
-    req.archivo = enlaceEncontrado.nombre;
-    //Eliminar enlace de la DB
-    await Enlace.findOneAndDelete(url)
-    
-    //Eliminar archivo  - se hace con el siguiente middleware
-    next()
-  } else {
-    enlaceEncontrado.descargas--;
-    await enlaceEncontrado.save()
   }
-}
+  const password = enlaceEncontrado.password ? true : false 
+  res.json({ 
+    archivo: enlaceEncontrado.nombre, 
+    nombreOriginal: enlaceEncontrado.nombre_original, 
+    password,
+    descargas: enlaceEncontrado.descargas 
+  })
+};
+
+const obtenerTodosEnlaces = async (req, res) => {
+  try {
+    const enlaces = await Enlace.find({}).select('url -_id');
+    res.json(enlaces)
+  } catch (error) {
+    console.log(error)
+  }
+};
+
+const comprobarClaveEnlace = async (req, res) => {
+  const { url } = req.params;
+  const { password } = req.body;
+  const enlace = await Enlace.findOne({ nombre: url });
+  if(!enlace){
+    const error = new Error('No existe este archivo en la base de datos');
+    return res.status(404).json({error: true, msg: error.message})
+  }
+  const esCorrecto = await compararPassword(password, enlace.password)
+  res.json({ esCorrecto })
+};
 
 export {
   generarNuevoEnlace,
-  obtenerEnlace
+  obtenerEnlace,
+  obtenerTodosEnlaces,
+  comprobarClaveEnlace
 }

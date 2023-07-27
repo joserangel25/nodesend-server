@@ -8,13 +8,13 @@ import enlacesRoutes from "./routes/enlacesRoutes.js";
 import archivosRoutes from "./routes/archivosRoutes.js";
 
 //Creando el Servidor
-const app = express()
+const app = express();
 app.use(express.json());
 
-dotenv.config()
+dotenv.config();
 
 //Conectado a la DB
-conectarDB()
+conectarDB();
 
 //Habilitar CORS
 const corsOptions = {
@@ -24,6 +24,8 @@ app.use(cors(corsOptions))
 
 //Puerto App
 const PORT = process.env.PORT || 4000
+
+app.use(express.static('uploads'));
 
 //Rutas de la App
 app.use('/api/usuarios', usuarioRoutes)

@@ -9,7 +9,7 @@ export const checkAuth = (req, res, next) => {
       req.usuario = usuarioToken;
     } catch (error) {
       console.log(error)
-      res.status(401).json({msg: 'Token inválido. No tienes permisos para acceder'})
+      // res.status(401).json({msg: 'Token inválido. No tienes permisos para acceder'})
     }
   }
   next()
